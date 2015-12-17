@@ -14,6 +14,7 @@ git clone https://github.com/isitnikov/m2-convert-patch-for-composer-install.git
 * (Optional; for *nix systems) create symlink for converter into the bin folder
 ```
 ln -s /path/to/m2-convert-patch-for-composer-install/convert-for-composer.php ~/bin/
+chmod +x ~/bin/convert-for-composer.php
 ```
 
 ## Usage
