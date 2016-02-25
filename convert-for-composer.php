@@ -1,8 +1,17 @@
 #!/usr/bin/env php
 <?php
 class Converter {
-    protected $nonComposerPath = 'app/code/Magento';
-    protected $composerPath    = 'vendor/magento/module-';
+    const MODULE = 'Module';
+    const LIBRARY = 'Library';
+
+    protected $nonComposerPath = [
+        self::MODULE    => 'app/code/Magento',
+        self::LIBRARY   => 'lib/internal/Magento'
+    ];
+    protected $composerPath    = [
+        self::MODULE    => 'vendor/magento/module-',
+        self::LIBRARY   => 'vendor/magento/'
+    ];
 
     public function __construct($params = array())
     {
@@ -38,9 +47,20 @@ HELP_TEXT;
 
     public function camelCaseStringCallback($value)
     {
-        return $this->composerPath . trim(preg_replace_callback('/((?:^|[A-Z])[a-z]+)/',
+        return trim(preg_replace_callback('/((?:^|[A-Z])[a-z]+)/',
             array($this, 'splitCamelCaseByDashes'), $value[1]), '-') . '/';
     }
+
+    public function camelCaseStringCallbackModule($value)
+    {
+        return $this->composerPath[self::MODULE] . $this->camelCaseStringCallback($value);
+    }
+
+    public function camelCaseStringCallbackLibrary($value)
+    {
+        return $this->composerPath[self::LIBRARY] . $this->camelCaseStringCallback($value);
+    }
+
 
     public function splitCamelCaseByDashes($value)
     {
@@ -49,8 +69,12 @@ HELP_TEXT;
 
     protected function replaceContent(&$fileContent)
     {
-        return preg_replace_callback('/' . addcslashes($this->nonComposerPath, '/') . '\/([A-z0-9\-]+)?\//',
-            array($this, 'camelCaseStringCallback'), $fileContent);
+        foreach ($this->nonComposerPath as $type => $path) {
+            $fileContent = preg_replace_callback('/' . addcslashes($path, '/') . '\/([A-z0-9\-]+)?\//',
+                array($this, 'camelCaseStringCallback' . $type), $fileContent);
+        }
+
+        return $fileContent;
     }
 }
 
