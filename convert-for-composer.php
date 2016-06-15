@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
-class Converter {
+class Converter 
+{
+    const COMMAND_HELP = 'help';
+
     const MODULE = 'Module';
     const LIBRARY = 'Library';
 
@@ -16,13 +19,12 @@ class Converter {
     public function __construct($params = array())
     {
         if (!isset($params[1])) {
-            print("Error! Input file is not specified. Type 'help' for support.\n") ;
-            exit(1);
+            $params[1] = self::COMMAND_HELP;
         }
 
         $filename = $params[1];
 
-        if ($filename == 'help') {
+        if ($filename == self::COMMAND_HELP) {
             echo <<<HELP_TEXT
 Usage: php -f converter-for-composer.php [file ...|help] [> new-file]
     converter-for-composer.php [file ...|help] [> new-file]
