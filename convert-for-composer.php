@@ -6,14 +6,20 @@ class Converter
 
     const MODULE = 'Module';
     const LIBRARY = 'Library';
+    const ADMINHTML_DESIGN = 'AdminhtmlDesign';
+    const FRONTEND_DESIGN = 'FrontendDesign';
 
     protected $nonComposerPath = [
-        self::MODULE    => 'app/code/Magento',
-        self::LIBRARY   => 'lib/internal/Magento'
+        self::MODULE                => 'app/code/Magento',
+        self::LIBRARY               => 'lib/internal/Magento',
+        self::ADMINHTML_DESIGN      => 'app/design/adminhtml/Magento',
+        self::FRONTEND_DESIGN       => 'app/design/frontend/Magento'
     ];
     protected $composerPath    = [
-        self::MODULE    => 'vendor/magento/module-',
-        self::LIBRARY   => 'vendor/magento/'
+        self::MODULE                => 'vendor/magento/module-',
+        self::LIBRARY               => 'vendor/magento/',
+        self::ADMINHTML_DESIGN      => 'vendor/magento/theme-adminhtml-',
+        self::FRONTEND_DESIGN       => 'vendor/magento/theme-frontend-'
     ];
 
     public function __construct($params = array())
@@ -63,6 +69,15 @@ HELP_TEXT;
         return $this->composerPath[self::LIBRARY] . $this->camelCaseStringCallback($value);
     }
 
+    public function camelCaseStringCallbackAdminhtmlDesign($value)
+    {
+        return $this->composerPath[self::ADMINHTML_DESIGN] . $this->camelCaseStringCallback($value);
+    }
+
+    public function camelCaseStringCallbackFrontendDesign($value)
+    {
+        return $this->composerPath[self::ADMINHTML_DESIGN] . $this->camelCaseStringCallback($value);
+    }
 
     public function splitCamelCaseByDashes($value)
     {
