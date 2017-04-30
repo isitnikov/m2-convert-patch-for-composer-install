@@ -76,7 +76,7 @@ HELP_TEXT;
 
     public function camelCaseStringCallbackFrontendDesign($value)
     {
-        return $this->composerPath[self::ADMINHTML_DESIGN] . $this->camelCaseStringCallback($value);
+        return $this->composerPath[self::FRONTEND_DESIGN] . $this->camelCaseStringCallback($value);
     }
 
     public function splitCamelCaseByDashes($value)
