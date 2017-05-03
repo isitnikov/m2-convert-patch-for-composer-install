@@ -20,10 +20,12 @@ chmod +x ~/bin/m2-convert-for-composer
 
 ## Usage
 ```
-Usage: php -f converter-for-composer.php [file ...|help] [> new-file]
-    converter-for-composer.php [file ...|help] [> new-file]
+Usage: php -f converter-for-composer.php [options] file [> new-file]
+    converter-for-composer.php [options] file [> new-file]
 
-    file        path to PATCH file which contains pathes like app/code/Magento,
-                that is in case when Magento 2 was installed without help of composer
-    help        this help
+    file        path to source PATCH file
+
+[options]
+    -h, --help  Show help
+    -r          Reverse mode. Convert composer format back to git
 ```
