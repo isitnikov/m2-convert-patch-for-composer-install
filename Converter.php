@@ -32,27 +32,25 @@ class Converter
 
         $filename = $params[1];
 
-        if ($filename == self::COMMAND_HELP) {
-            echo <<<HELP_TEXT
-Usage: php -f converter-for-composer.php [file ...|help] [> new-file]
-    converter-for-composer.php [file ...|help] [> new-file]
-
-    file        path to PATCH file which contains pathes like app/code/Magento,
-                that is in case when Magento 2 was installed without help of composer
-    help        this help
-
-HELP_TEXT;
-            exit(0);
-        }
-
-        if (!file_exists($filename)) {
+        if ($filename != self::COMMAND_HELP && !file_exists($filename)) {
             printf("Error! File %s does not exist.\n", $filename);
             exit(1);
         }
+    }
 
+    /**
+     * Convert to composer format
+     *
+     * @param string $filename
+     * @return string
+     */
+    public function convert($filename)
+    {
+        if ($filename == self::COMMAND_HELP) {
+            $this->showHelp($filename);
+        }
         $content = file_get_contents($filename);
-        echo $this->replaceContent($content);
-        exit(0);
+        return $this->replaceContent($content);
     }
 
     private function camelCaseStringCallback($value)
@@ -94,5 +92,23 @@ HELP_TEXT;
         }
 
         return $fileContent;
+    }
+
+    /**
+     * Show help
+     *
+     * @return string
+     */
+    private function showHelp()
+    {
+        return <<<HELP_TEXT
+Usage: php -f converter-for-composer.php [file ...|help] [> new-file]
+    converter-for-composer.php [file ...|help] [> new-file]
+
+    file        path to PATCH file which contains pathes like app/code/Magento,
+                that is in case when Magento 2 was installed without help of composer
+    help        this help
+
+HELP_TEXT;
     }
 }
