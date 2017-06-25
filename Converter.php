@@ -1,5 +1,7 @@
-#!/usr/bin/env php
 <?php
+
+namespace Magento\Support;
+
 class Converter 
 {
     const COMMAND_HELP = 'help';
@@ -53,38 +55,38 @@ HELP_TEXT;
         exit(0);
     }
 
-    public function camelCaseStringCallback($value)
+    private function camelCaseStringCallback($value)
     {
         return trim(preg_replace_callback('/((?:^|[A-Z])[a-z]+)/',
             array($this, 'splitCamelCaseByDashes'), $value[1]), '-') . '/';
     }
 
-    public function camelCaseStringCallbackModule($value)
+    private function camelCaseStringCallbackModule($value)
     {
         return $this->composerPath[self::MODULE] . $this->camelCaseStringCallback($value);
     }
 
-    public function camelCaseStringCallbackLibrary($value)
+    private function camelCaseStringCallbackLibrary($value)
     {
         return $this->composerPath[self::LIBRARY] . $this->camelCaseStringCallback($value);
     }
 
-    public function camelCaseStringCallbackAdminhtmlDesign($value)
+    private function camelCaseStringCallbackAdminhtmlDesign($value)
     {
         return $this->composerPath[self::ADMINHTML_DESIGN] . $this->camelCaseStringCallback($value);
     }
 
-    public function camelCaseStringCallbackFrontendDesign($value)
+    private function camelCaseStringCallbackFrontendDesign($value)
     {
         return $this->composerPath[self::FRONTEND_DESIGN] . $this->camelCaseStringCallback($value);
     }
 
-    public function splitCamelCaseByDashes($value)
+    private function splitCamelCaseByDashes($value)
     {
         return '-' . strtolower($value[0]);
     }
 
-    protected function replaceContent(&$fileContent)
+    private function replaceContent(&$fileContent)
     {
         foreach ($this->nonComposerPath as $type => $path) {
             $fileContent = preg_replace_callback('/' . addcslashes($path, '/') . '\/([A-z0-9\-]+)?\//',
@@ -94,5 +96,3 @@ HELP_TEXT;
         return $fileContent;
     }
 }
-
-new Converter($argv);
