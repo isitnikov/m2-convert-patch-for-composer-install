@@ -1,6 +1,6 @@
 <?php
 
-namespace Magento\Support;
+namespace Isitnikov\Converter;
 
 class Converter 
 {
@@ -24,16 +24,26 @@ class Converter
         self::FRONTEND_DESIGN       => 'vendor/magento/theme-frontend-'
     ];
 
+    /**
+     * @var string
+     */
+    private $filename;
+
+    /**
+     * Converter constructor.
+     *
+     * @param array $params
+     */
     public function __construct($params = array())
     {
         if (!isset($params[1])) {
             $params[1] = self::COMMAND_HELP;
         }
 
-        $filename = $params[1];
+        $this->filename = $params[1];
 
-        if ($filename != self::COMMAND_HELP && !file_exists($filename)) {
-            printf("Error! File %s does not exist.\n", $filename);
+        if ($this->filename != self::COMMAND_HELP && !file_exists(realpath($this->filename))) {
+            printf("Error! File %s does not exist.\n", $this->filename);
             exit(1);
         }
     }
@@ -41,15 +51,14 @@ class Converter
     /**
      * Convert to composer format
      *
-     * @param string $filename
      * @return string
      */
-    public function convert($filename)
+    public function convert()
     {
-        if ($filename == self::COMMAND_HELP) {
-            $this->showHelp($filename);
+        if ($this->filename == self::COMMAND_HELP) {
+            return $this->showHelp($this->filename);
         }
-        $content = file_get_contents($filename);
+        $content = file_get_contents($this->filename);
         return $this->replaceContent($content);
     }
 
