@@ -2,55 +2,77 @@
 <?php
 class Converter 
 {
-    const COMMAND_HELP = 'help';
+    const MODULE            = 'Module';
+    const ADMINHTML_DESIGN  = 'AdminhtmlDesign';
+    const FRONTEND_DESIGN   = 'FrontendDesign';
+    const LIBRARY           = 'Library';
 
-    const MODULE = 'Module';
-    const LIBRARY = 'Library';
-    const ADMINHTML_DESIGN = 'AdminhtmlDesign';
-    const FRONTEND_DESIGN = 'FrontendDesign';
-
-    protected $nonComposerPath = [
-        self::MODULE                => 'app/code/Magento',
-        self::LIBRARY               => 'lib/internal/Magento',
-        self::ADMINHTML_DESIGN      => 'app/design/adminhtml/Magento',
-        self::FRONTEND_DESIGN       => 'app/design/frontend/Magento'
-    ];
-    protected $composerPath    = [
+    protected $nonComposerPath = array(
+        self::MODULE                => 'app/code/Magento/',
+        self::ADMINHTML_DESIGN      => 'app/design/adminhtml/Magento/',
+        self::FRONTEND_DESIGN       => 'app/design/frontend/Magento/',
+        self::LIBRARY               => 'lib/internal/Magento/'
+    );
+    protected $composerPath    = array(
         self::MODULE                => 'vendor/magento/module-',
-        self::LIBRARY               => 'vendor/magento/',
         self::ADMINHTML_DESIGN      => 'vendor/magento/theme-adminhtml-',
-        self::FRONTEND_DESIGN       => 'vendor/magento/theme-frontend-'
-    ];
+        self::FRONTEND_DESIGN       => 'vendor/magento/theme-frontend-',
+        self::LIBRARY               => 'vendor/magento/'
+    );
+
+    protected $options;
 
     public function __construct($params = array())
     {
-        if (!isset($params[1])) {
-            $params[1] = self::COMMAND_HELP;
-        }
+        $filename = $this->parseArgs($params);
+        $this->validateFile($filename);
+        $this->convert($filename);
+    }
 
-        $filename = $params[1];
+    protected function showHelp()
+    {
+        echo <<<HELP_TEXT
+Usage: php -f converter-for-composer.php [options] file [> new-file]
+    converter-for-composer.php [options] file [> new-file]
 
-        if ($filename == self::COMMAND_HELP) {
-            echo <<<HELP_TEXT
-Usage: php -f converter-for-composer.php [file ...|help] [> new-file]
-    converter-for-composer.php [file ...|help] [> new-file]
+    file        path to source PATCH file
 
-    file        path to PATCH file which contains pathes like app/code/Magento,
-                that is in case when Magento 2 was installed without help of composer
-    help        this help
+[options]
+    -h, --help  Show help
+    -r          Reverse mode. Convert composer format back to git
 
 HELP_TEXT;
-            exit(0);
+        exit(0);
+    }
+
+    protected function parseArgs($params)
+    {
+        if (count($params) < 2) {
+            $this->showHelp();
         }
 
-        if (!file_exists($filename)) {
+        array_shift($params);
+        $this->options = getopt('rh', array('help'));
+        if (isset($this->options['h']) || isset($this->options['help'])) {
+            $this->showHelp();
+        }
+
+        $filename = array_pop($params);
+
+        return $filename;
+    }
+
+    protected function validateFile($filename)
+    {
+        if (!file_exists($filename) || is_dir($filename)) {
             printf("Error! File %s does not exist.\n", $filename);
             exit(1);
         }
 
-        $content = file_get_contents($filename);
-        echo $this->replaceContent($content);
-        exit(0);
+        if (!is_readable($filename)) {
+            printf("Error! Can not read file %s.\n", $filename);
+            exit(2);
+        }
     }
 
     public function camelCaseStringCallback($value)
@@ -64,11 +86,6 @@ HELP_TEXT;
         return $this->composerPath[self::MODULE] . $this->camelCaseStringCallback($value);
     }
 
-    public function camelCaseStringCallbackLibrary($value)
-    {
-        return $this->composerPath[self::LIBRARY] . $this->camelCaseStringCallback($value);
-    }
-
     public function camelCaseStringCallbackAdminhtmlDesign($value)
     {
         return $this->composerPath[self::ADMINHTML_DESIGN] . $this->camelCaseStringCallback($value);
@@ -79,19 +96,72 @@ HELP_TEXT;
         return $this->composerPath[self::FRONTEND_DESIGN] . $this->camelCaseStringCallback($value);
     }
 
+    public function camelCaseStringCallbackLibrary($value)
+    {
+        return $this->composerPath[self::LIBRARY] . $this->camelCaseStringCallback($value);
+    }
+
     public function splitCamelCaseByDashes($value)
     {
         return '-' . strtolower($value[0]);
     }
 
-    protected function replaceContent(&$fileContent)
+    protected function convertGitToComposer(&$content)
     {
         foreach ($this->nonComposerPath as $type => $path) {
-            $fileContent = preg_replace_callback('/' . addcslashes($path, '/') . '\/([A-z0-9\-]+)?\//',
-                array($this, 'camelCaseStringCallback' . $type), $fileContent);
+            $content = preg_replace_callback('/' . addcslashes($path, '/') . '([A-z0-9\-]+)?\//',
+                array($this, 'camelCaseStringCallback' . $type), $content);
         }
 
-        return $fileContent;
+        return $content;
+    }
+
+    protected function convertDashedStringToCamelCase($string)
+    {
+        return str_replace('-', '', ucwords($string, '-'));
+    }
+
+    protected function dashedStringCallbackModule($matches)
+    {
+        return $this->nonComposerPath[self::MODULE] . $this->convertDashedStringToCamelCase($matches[1]);
+    }
+
+    protected function dashedStringCallbackAdminhtmlDesign($matches)
+    {
+        return $this->nonComposerPath[self::ADMINHTML_DESIGN] . $matches[1];
+    }
+
+    protected function dashedStringCallbackFrontendDesign($matches)
+    {
+        return $this->nonComposerPath[self::FRONTEND_DESIGN] . $matches[1];
+    }
+
+    protected function dashedStringCallbackLibrary($matches)
+    {
+        return $this->nonComposerPath[self::LIBRARY] . $this->convertDashedStringToCamelCase($matches[1]);
+    }
+
+    protected function convertComposerToGit(&$content)
+    {
+        foreach ($this->composerPath as $type => $path) {
+            $content = preg_replace_callback('~' . $path . '([-\w]+)~',
+                array($this, 'dashedStringCallback' . $type), $content);
+        }
+
+        return $content;
+    }
+
+    protected function convert($filename)
+    {
+        $content = file_get_contents($filename);
+
+        if (!isset($this->options['r'])) {
+            echo $this->convertGitToComposer($content);
+        } else {
+            echo $this->convertComposerToGit($content);
+        }
+
+        exit(0);
     }
 }
 
