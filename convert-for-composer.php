@@ -134,10 +134,10 @@ HELP_TEXT;
                 '~(^diff --git\s+(?:a\/)?)' . $escapedPath . '([-\w]+)(\/[^\s]+\s+(?:b\/)?)' . $escapedPath . '([-\w]+)(\/[^\s]+)$~m',
                 function ($matches) use ($type, $needProcess) {
                     return $matches[1] . $this->nonComposerPath[$type]
-                    . $needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2]
-                    . $matches[3] . $this->nonComposerPath[$type]
-                    . $needProcess ? $this->dashedStringToCamelCase($matches[4]) : $matches[4]
-                    . $matches[5];
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2])
+                        . $matches[3] . $this->nonComposerPath[$type]
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[4]) : $matches[4])
+                        . $matches[5];
                 },
                 $content
             );
@@ -148,7 +148,7 @@ HELP_TEXT;
                 '~(^(?:---|\+\+\+|Index:)\s+(?:a\/|b\/)?)' . $escapedPath . '([-\w]+)~m',
                 function ($matches) use ($type, $needProcess) {
                     return $matches[1] . $this->nonComposerPath[$type]
-                        . $needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2];
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2]);
                 },
                 $content
             );
