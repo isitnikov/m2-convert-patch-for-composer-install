@@ -4,7 +4,7 @@
 Generates patches that can be applied for Magento 2 which was installed from the composer.
 
 ## Requirements
-* PHP-CLI 5.3+
+* PHP-CLI 5.4+
 
 ## Installation
 * Clone this repository into your own folder
