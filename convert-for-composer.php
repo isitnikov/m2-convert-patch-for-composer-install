@@ -75,30 +75,10 @@ HELP_TEXT;
         }
     }
 
-    public function camelCaseStringCallback($value)
+    public function camelCaseToDashedString($value)
     {
         return trim(preg_replace_callback('/((?:^|[A-Z])[a-z]+)/',
-            array($this, 'splitCamelCaseByDashes'), $value[1]), '-') . '/';
-    }
-
-    public function camelCaseStringCallbackModule($value)
-    {
-        return $this->composerPath[self::MODULE] . $this->camelCaseStringCallback($value);
-    }
-
-    public function camelCaseStringCallbackAdminhtmlDesign($value)
-    {
-        return $this->composerPath[self::ADMINHTML_DESIGN] . $this->camelCaseStringCallback($value);
-    }
-
-    public function camelCaseStringCallbackFrontendDesign($value)
-    {
-        return $this->composerPath[self::FRONTEND_DESIGN] . $this->camelCaseStringCallback($value);
-    }
-
-    public function camelCaseStringCallbackLibrary($value)
-    {
-        return $this->composerPath[self::LIBRARY] . $this->camelCaseStringCallback($value);
+            array($this, 'splitCamelCaseByDashes'), $value), '-');
     }
 
     public function splitCamelCaseByDashes($value)
@@ -106,49 +86,73 @@ HELP_TEXT;
         return '-' . strtolower($value[0]);
     }
 
-    protected function convertGitToComposer(&$content)
+    public function g2c(&$content)
     {
         foreach ($this->nonComposerPath as $type => $path) {
-            $content = preg_replace_callback('/' . addcslashes($path, '/') . '([A-z0-9\-]+)?\//',
-                array($this, 'camelCaseStringCallback' . $type), $content);
-        }
+            $escapedPath = addcslashes($path, '/');
 
-        return $content;
+            // (     1     )                 (    2   )(         3          )                 (    4   )(        5        )
+            // diff --git a/app/code/Magento/SomeModule/Some/Path/File.ext b/app/code/Magento/SomeModule/Some/Path/File.ext
+            $content = preg_replace_callback(
+                '~(^diff --git\s+(?:a\/)?)' . $escapedPath . '([-\w]+)(\/[^\s]+\s+(?:b\/)?)' . $escapedPath . '([-\w]+)(\/[^\s]+)$~m',
+                function ($matches) use ($type) {
+                    return $matches[1] . $this->composerPath[$type]
+                        . $this->camelCaseToDashedString($matches[2])
+                        . $matches[3] . $this->composerPath[$type]
+                        . $this->camelCaseToDashedString($matches[4])
+                        . $matches[5];
+                },
+                $content
+            );
+
+            // (  1 )                 (    2   )
+            // +++ b/app/code/Magento/SomeModule...
+            $content = preg_replace_callback(
+                '~(^(?:---|\+\+\+|Index:)\s+(?:a\/|b\/)?)' . $escapedPath . '([-\w]+)~m',
+                function ($matches) use ($type) {
+                    return $matches[1] . $this->composerPath[$type] . $this->camelCaseToDashedString($matches[2]);
+                },
+                $content
+            );
+        }
     }
 
-    protected function convertDashedStringToCamelCase($string)
+    public function dashedStringToCamelCase($string)
     {
         return str_replace('-', '', ucwords($string, '-'));
     }
 
-    protected function dashedStringCallbackModule($matches)
-    {
-        return $this->nonComposerPath[self::MODULE] . $this->convertDashedStringToCamelCase($matches[1]);
-    }
-
-    protected function dashedStringCallbackAdminhtmlDesign($matches)
-    {
-        return $this->nonComposerPath[self::ADMINHTML_DESIGN] . $matches[1];
-    }
-
-    protected function dashedStringCallbackFrontendDesign($matches)
-    {
-        return $this->nonComposerPath[self::FRONTEND_DESIGN] . $matches[1];
-    }
-
-    protected function dashedStringCallbackLibrary($matches)
-    {
-        return $this->nonComposerPath[self::LIBRARY] . $this->convertDashedStringToCamelCase($matches[1]);
-    }
-
-    protected function convertComposerToGit(&$content)
+    public function c2g(&$content)
     {
         foreach ($this->composerPath as $type => $path) {
-            $content = preg_replace_callback('~' . $path . '([-\w]+)~',
-                array($this, 'dashedStringCallback' . $type), $content);
-        }
+            $escapedPath = addcslashes($path, '/');
+            $needProcess = $type == self::MODULE || $type == self::LIBRARY;
 
-        return $content;
+            // (     1     )               (        2       )(         3          )               (        4       )(        5        )
+            // diff --git a/vendor/magento/module-some-module/Some/Path/File.ext b/vendor/magento/module-some-module/Some/Path/File.ext
+            $content = preg_replace_callback(
+                '~(^diff --git\s+(?:a\/)?)' . $escapedPath . '([-\w]+)(\/[^\s]+\s+(?:b\/)?)' . $escapedPath . '([-\w]+)(\/[^\s]+)$~m',
+                function ($matches) use ($type, $needProcess) {
+                    return $matches[1] . $this->nonComposerPath[$type]
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2])
+                        . $matches[3] . $this->nonComposerPath[$type]
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[4]) : $matches[4])
+                        . $matches[5];
+                },
+                $content
+            );
+
+            // (  1 )               (        2       )
+            // +++ b/vendor/magento/module-some-module...
+            $content = preg_replace_callback(
+                '~(^(?:---|\+\+\+|Index:)\s+(?:a\/|b\/)?)' . $escapedPath . '([-\w]+)~m',
+                function ($matches) use ($type, $needProcess) {
+                    return $matches[1] . $this->nonComposerPath[$type]
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2]);
+                },
+                $content
+            );
+        }
     }
 
     protected function convert($filename)
@@ -156,11 +160,12 @@ HELP_TEXT;
         $content = file_get_contents($filename);
 
         if (!isset($this->options['r'])) {
-            echo $this->convertGitToComposer($content);
+            $this->g2c($content);
         } else {
-            echo $this->convertComposerToGit($content);
+            $this->c2g($content);
         }
 
+        echo $content;
         exit(0);
     }
 }
