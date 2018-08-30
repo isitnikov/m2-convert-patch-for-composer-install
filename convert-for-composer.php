@@ -6,7 +6,7 @@
  *
  * Class Converter
  */
-class Converter 
+class Converter
 {
     const MODULE                = 'Module';
     const ADMINHTML_DESIGN      = 'AdminhtmlDesign';
@@ -139,6 +139,17 @@ HELP_TEXT;
                 },
                 $content
             );
+
+            // (     1     )                (    2   )
+            // rename from app/code/Magento/SomeModule...
+            $content = preg_replace_callback (
+                '~(^rename\s+(?:from|to)\s+)' . $escapedPath . '([-\w]+)~m',
+                function ($matches) use ($type, $needProcess) {
+                    return $matches[1] . $this->composerPath[$type]
+                        . ($needProcess ? $this->camelCaseToDashedString($matches[2]) : $matches[2]);
+                },
+                $content
+            );
         }
     }
 
@@ -177,6 +188,17 @@ HELP_TEXT;
             // +++ b/vendor/magento/module-some-module...
             $content = preg_replace_callback(
                 '~(^(?:---|\+\+\+|Index:)\s+(?:a\/|b\/)?)' . $escapedPath . '([-\w]+)~m',
+                function ($matches) use ($type, $needProcess) {
+                    return $matches[1] . $this->nonComposerPath[$type]
+                        . ($needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2]);
+                },
+                $content
+            );
+
+            // (     1     )                (        2       )
+            // rename from vendor/magento/module-some-module...
+            $content = preg_replace_callback (
+                '~(^rename\s+(?:from|to)\s+)' . $escapedPath . '([-\w]+)~m',
                 function ($matches) use ($type, $needProcess) {
                     return $matches[1] . $this->nonComposerPath[$type]
                         . ($needProcess ? $this->dashedStringToCamelCase($matches[2]) : $matches[2]);
